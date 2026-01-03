@@ -18,6 +18,11 @@ import Help from "./pages/Help";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
+// Admin
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminProducts from "./pages/admin/Products";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,24 +33,38 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="flex flex-col min-h-screen">
-              <Navbar />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/shop" element={<Shop />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/help" element={<Help />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
+            <Routes>
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+              </Route>
+
+              {/* Public Routes */}
+              <Route
+                path="*"
+                element={
+                  <div className="flex flex-col min-h-screen">
+                    <Navbar />
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/shop" element={<Shop />} />
+                        <Route path="/product/:id" element={<ProductDetail />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/checkout" element={<Checkout />} />
+                        <Route path="/orders" element={<Orders />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/help" element={<Help />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </main>
+                    <Footer />
+                  </div>
+                }
+              />
+            </Routes>
           </BrowserRouter>
         </TooltipProvider>
       </CartProvider>
