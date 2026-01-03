@@ -1,10 +1,21 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react";
 
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleCheckout = () => {
+    if (!user) {
+      navigate("/auth");
+    } else {
+      navigate("/checkout");
+    }
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -138,8 +149,13 @@ const Cart = () => {
                 </div>
               </div>
 
-              <Button variant="hero" className="w-full mt-6" size="lg">
-                Proceed to Checkout
+              <Button 
+                variant="hero" 
+                className="w-full mt-6" 
+                size="lg"
+                onClick={handleCheckout}
+              >
+                {user ? "Proceed to Checkout" : "Login to Checkout"}
               </Button>
 
               <Link to="/shop" className="block mt-4">
