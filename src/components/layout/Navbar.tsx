@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Menu, X, Search, User, LogOut, Package } from "lucide-react";
+import { ShoppingCart, Menu, X, Search, User, LogOut, Package, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useIsAdmin } from "@/hooks/useUserRole";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { cartItems } = useCart();
   const { user, signOut } = useAuth();
+  const { isAdmin, isProductManager } = useIsAdmin();
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -95,6 +97,12 @@ const Navbar = () => {
                     <p className="text-sm font-medium truncate">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
+                  {(isAdmin || isProductManager) && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin Panel
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => navigate("/orders")}>
                     <Package className="h-4 w-4 mr-2" />
                     My Orders
