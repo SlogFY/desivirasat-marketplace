@@ -1,13 +1,23 @@
-import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Search, User } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ShoppingCart, Menu, X, Search, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { cartItems } = useCart();
+  const { user, signOut } = useAuth();
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -19,6 +29,11 @@ const Navbar = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
@@ -66,9 +81,39 @@ const Navbar = () => {
             <Button variant="ghost" size="icon" className="hidden md:flex">
               <Search className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <User className="h-5 w-5" />
-            </Button>
+            
+            {/* User Menu */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hidden md:flex">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium truncate">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/orders")}>
+                    <Package className="h-4 w-4 mr-2" />
+                    My Orders
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth" className="hidden md:block">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+            
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
@@ -109,10 +154,34 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="flex gap-2 px-4 pt-4 border-t border-border mt-2">
-                <Button variant="outline" className="flex-1">
-                  <User className="h-4 w-4 mr-2" />
-                  Login
-                </Button>
+                {user ? (
+                  <div className="flex-1 space-y-2">
+                    <Link to="/orders" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full">
+                        <Package className="h-4 w-4 mr-2" />
+                        My Orders
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full text-destructive"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full">
+                      <User className="h-4 w-4 mr-2" />
+                      Login
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
