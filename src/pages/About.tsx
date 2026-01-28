@@ -34,14 +34,16 @@ const About = () => {
               Bridging Generations Through Craft
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Desi Virasat was born from a simple observation: India's villages hold 
-              centuries of craftsmanship, traditional recipes, and artistic heritage 
-              that risk being forgotten. We're here to change that.
+              Founded by <span className="font-semibold text-foreground">Divya Singh</span>, 
+              Desi Virasat is a women-led startup born from a simple observation: India's 
+              villages hold centuries of craftsmanship, traditional recipes, and artistic 
+              heritage that risk being forgotten. We're here to change that.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed mt-4">
-              By connecting rural artisans directly with conscious consumers, we ensure 
-              that every purchase you make doesn't just bring you a product—it carries 
-              forward a tradition, supports a family, and keeps a heritage alive.
+              As a women-led initiative, we're committed to empowering rural artisans—especially 
+              women craftswomen—by connecting them directly with conscious consumers. Every 
+              purchase you make doesn't just bring you a product—it carries forward a tradition, 
+              supports a family, and keeps a heritage alive.
             </p>
           </div>
         </div>

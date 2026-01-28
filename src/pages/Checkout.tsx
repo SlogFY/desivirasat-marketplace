@@ -14,7 +14,9 @@ import { Link } from "react-router-dom";
 
 interface Address {
   id: string;
-  label: string;
+  label?: string;
+  full_name: string;
+  phone: string;
   address_line1: string;
   address_line2: string | null;
   city: string;
@@ -39,6 +41,8 @@ const Checkout = () => {
   // New address form
   const [newAddress, setNewAddress] = useState({
     label: "Home",
+    full_name: "",
+    phone: "",
     address_line1: "",
     address_line2: "",
     city: "",
@@ -88,7 +92,7 @@ const Checkout = () => {
   };
 
   const handleAddAddress = async () => {
-    if (!newAddress.address_line1 || !newAddress.city || !newAddress.state || !newAddress.pincode) {
+    if (!newAddress.full_name || !newAddress.phone || !newAddress.address_line1 || !newAddress.city || !newAddress.state || !newAddress.pincode) {
       toast({
         title: "Missing Fields",
         description: "Please fill all required address fields.",
@@ -116,6 +120,8 @@ const Checkout = () => {
       setShowNewAddress(false);
       setNewAddress({
         label: "Home",
+        full_name: "",
+        phone: "",
         address_line1: "",
         address_line2: "",
         city: "",
@@ -176,8 +182,7 @@ const Checkout = () => {
       const orderItems = cartItems.map((item) => ({
         order_id: order.id,
         product_id: item.product.id,
-        product_name: item.product.name,
-        product_price: item.product.price,
+        price: item.product.price,
         quantity: item.quantity,
       }));
 
@@ -268,14 +273,20 @@ const Checkout = () => {
                       <RadioGroupItem value={addr.id} id={addr.id} className="mt-1" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{addr.label}</span>
+                          <span className="font-medium">{addr.full_name}</span>
+                          {addr.label && (
+                            <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                              {addr.label}
+                            </span>
+                          )}
                           {addr.is_default && (
                             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                               Default
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">{addr.phone}</p>
+                        <p className="text-sm text-muted-foreground">
                           {addr.address_line1}
                           {addr.address_line2 && `, ${addr.address_line2}`}
                         </p>
@@ -301,6 +312,28 @@ const Checkout = () => {
 
               {showNewAddress && (
                 <div className="space-y-4 mt-4 p-4 border border-border rounded-lg">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Full Name *</Label>
+                      <Input
+                        placeholder="Enter full name"
+                        value={newAddress.full_name}
+                        onChange={(e) =>
+                          setNewAddress({ ...newAddress, full_name: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Phone *</Label>
+                      <Input
+                        placeholder="Enter phone number"
+                        value={newAddress.phone}
+                        onChange={(e) =>
+                          setNewAddress({ ...newAddress, phone: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Label</Label>
