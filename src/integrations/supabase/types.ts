@@ -23,6 +23,7 @@ export type Database = {
           full_name: string
           id: string
           is_default: boolean | null
+          label: string | null
           phone: string
           pincode: string
           state: string
@@ -36,6 +37,7 @@ export type Database = {
           full_name: string
           id?: string
           is_default?: boolean | null
+          label?: string | null
           phone: string
           pincode: string
           state: string
@@ -49,6 +51,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_default?: boolean | null
+          label?: string | null
           phone?: string
           pincode?: string
           state?: string
@@ -87,6 +90,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          name_hindi: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          name_hindi?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          name_hindi?: string | null
+        }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -135,6 +165,7 @@ export type Database = {
           address_id: string | null
           created_at: string
           id: string
+          notes: string | null
           payment_method: string
           shipping: number
           status: string
@@ -147,6 +178,7 @@ export type Database = {
           address_id?: string | null
           created_at?: string
           id?: string
+          notes?: string | null
           payment_method: string
           shipping?: number
           status?: string
@@ -159,6 +191,7 @@ export type Database = {
           address_id?: string | null
           created_at?: string
           id?: string
+          notes?: string | null
           payment_method?: string
           shipping?: number
           status?: string
@@ -193,6 +226,7 @@ export type Database = {
           rating: number | null
           reviews_count: number | null
           state: string | null
+          stock_quantity: number
           tags: string[] | null
           updated_at: string
           village: string | null
@@ -212,6 +246,7 @@ export type Database = {
           rating?: number | null
           reviews_count?: number | null
           state?: string | null
+          stock_quantity?: number
           tags?: string[] | null
           updated_at?: string
           village?: string | null
@@ -231,9 +266,70 @@ export type Database = {
           rating?: number | null
           reviews_count?: number | null
           state?: string | null
+          stock_quantity?: number
           tags?: string[] | null
           updated_at?: string
           village?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      site_content: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          key: string
+          section: string
+          sort_order: number | null
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          key: string
+          section: string
+          sort_order?: number | null
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          key?: string
+          section?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          value?: string | null
         }
         Relationships: []
       }
@@ -241,19 +337,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -263,10 +359,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "product_manager" | "support" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -393,6 +495,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "product_manager", "support", "user"],
+    },
   },
 } as const
