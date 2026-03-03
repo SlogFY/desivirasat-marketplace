@@ -1,18 +1,27 @@
 import { useState } from "react";
-import { products, categories } from "@/data/products";
+import { useProducts, useCategories } from "@/hooks/useProducts";
+import { categories as localCategories } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, Loader2 } from "lucide-react";
 
 const Shop = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  const { data: products = [], isLoading } = useProducts();
+  const { data: dbCategories } = useCategories();
+
+  // Use DB categories if available, else local
+  const categories = dbCategories && dbCategories.length > 0
+    ? dbCategories.map(c => ({ id: c.name, name: c.name }))
+    : localCategories.map(c => ({ id: c.id, name: c.name }));
+
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category === selectedCategory;
+    const matchesCategory = !selectedCategory || product.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
@@ -31,7 +40,6 @@ const Shop = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Search & Filters Bar */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
-          {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
@@ -43,7 +51,6 @@ const Shop = () => {
             />
           </div>
 
-          {/* Filter Toggle (Mobile) */}
           <Button
             variant="outline"
             className="md:hidden"
@@ -53,7 +60,6 @@ const Shop = () => {
             Filters
           </Button>
 
-          {/* Category Filters (Desktop) */}
           <div className="hidden md:flex items-center gap-2">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
@@ -106,13 +112,15 @@ const Shop = () => {
           </div>
         )}
 
-        {/* Results Count */}
         <p className="text-sm text-muted-foreground mb-6">
           Showing {filteredProducts.length} of {products.length} products
         </p>
 
-        {/* Products Grid */}
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />

@@ -34,6 +34,7 @@ interface Product {
   rating: number | null;
   reviews_count: number | null;
   tags: string[] | null;
+  is_featured?: boolean;
 }
 
 const AdminProducts = () => {
@@ -147,7 +148,12 @@ const AdminProducts = () => {
                           className="w-12 h-12 rounded-lg object-cover"
                         />
                         <div>
-                          <p className="font-medium">{product.name}</p>
+                          <p className="font-medium">
+                            {product.name}
+                            {product.is_featured && (
+                              <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary text-secondary-foreground">TOP SELL</span>
+                            )}
+                          </p>
                           {product.artisan && (
                             <p className="text-xs text-muted-foreground">By {product.artisan}</p>
                           )}

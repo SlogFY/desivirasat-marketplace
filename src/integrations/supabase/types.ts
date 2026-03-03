@@ -219,6 +219,7 @@ export type Database = {
           id: string
           image_url: string
           in_stock: boolean
+          is_featured: boolean
           name: string
           name_hindi: string | null
           original_price: number | null
@@ -239,6 +240,7 @@ export type Database = {
           id?: string
           image_url: string
           in_stock?: boolean
+          is_featured?: boolean
           name: string
           name_hindi?: string | null
           original_price?: number | null
@@ -259,6 +261,7 @@ export type Database = {
           id?: string
           image_url?: string
           in_stock?: boolean
+          is_featured?: boolean
           name?: string
           name_hindi?: string | null
           original_price?: number | null
