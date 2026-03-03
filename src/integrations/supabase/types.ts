@@ -169,6 +169,10 @@ export type Database = {
           id: string
           notes: string | null
           payment_method: string
+          payment_status: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          refund_status: string | null
           return_deadline: string | null
           return_reason: string | null
           return_status: string | null
@@ -178,6 +182,7 @@ export type Database = {
           total: number
           tracking_id: string | null
           tracking_url: string | null
+          transaction_date: string | null
           updated_at: string
           user_id: string
         }
@@ -189,6 +194,10 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method: string
+          payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          refund_status?: string | null
           return_deadline?: string | null
           return_reason?: string | null
           return_status?: string | null
@@ -198,6 +207,7 @@ export type Database = {
           total: number
           tracking_id?: string | null
           tracking_url?: string | null
+          transaction_date?: string | null
           updated_at?: string
           user_id: string
         }
@@ -209,6 +219,10 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string
+          payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          refund_status?: string | null
           return_deadline?: string | null
           return_reason?: string | null
           return_status?: string | null
@@ -218,6 +232,7 @@ export type Database = {
           total?: number
           tracking_id?: string | null
           tracking_url?: string | null
+          transaction_date?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -230,6 +245,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          enabled: boolean
+          id: string
+          key_id: string
+          key_secret: string
+          mode: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          enabled?: boolean
+          id?: string
+          key_id?: string
+          key_secret?: string
+          mode?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          enabled?: boolean
+          id?: string
+          key_id?: string
+          key_secret?: string
+          mode?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -394,6 +442,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_razorpay_enabled: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "product_manager" | "support" | "user"

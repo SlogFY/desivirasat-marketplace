@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useIsAdmin } from "@/hooks/useUserRole";
-import { Loader2, LayoutDashboard, Package, Users, Settings, LogOut, ChevronLeft, Menu, FolderTree, FileText, ShoppingCart, RotateCcw } from "lucide-react";
+import { Loader2, LayoutDashboard, Package, Users, Settings, LogOut, ChevronLeft, Menu, FolderTree, FileText, ShoppingCart, RotateCcw, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const AdminLayout = () => {
@@ -43,6 +43,7 @@ const AdminLayout = () => {
     { name: "Site Content", path: "/admin/site-content", icon: FileText, show: isAdmin },
     { name: "Orders", path: "/admin/orders", icon: ShoppingCart, show: isAdmin },
     { name: "Returns", path: "/admin/returns", icon: RotateCcw, show: isAdmin },
+    { name: "Payment Settings", path: "/admin/payment-settings", icon: CreditCard, show: isAdmin },
     { name: "Users", path: "/admin/users", icon: Users, show: isAdmin },
     { name: "Settings", path: "/admin/settings", icon: Settings, show: isAdmin },
   ];
