@@ -1,10 +1,21 @@
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail, Facebook, Instagram, Twitter } from "lucide-react";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const Footer = () => {
+  const { data: socialData } = useSiteContent("social_links");
+  const { data: contactData } = useSiteContent("contact");
+
+  const facebookUrl = socialData?.content?.facebook_url || "#";
+  const instagramUrl = socialData?.content?.instagram_url || "#";
+  const twitterUrl = socialData?.content?.twitter_url || "#";
+
+  const phone = contactData?.content?.phone || "+91 63888 86278";
+  const email = contactData?.content?.email || "namaste@desivirasat.store";
+  const address = contactData?.content?.address || "Village Artisan Hub, Patna,\nBihar 800001, India";
+
   return (
     <footer className="bg-foreground text-background">
-      {/* Main Footer */}
       <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand */}
@@ -22,13 +33,13 @@ const Footer = () => {
               Preserving India's rural heritage by connecting village artisans with conscious buyers. Every purchase supports a family, a tradition, a story.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="w-9 h-9 rounded-full bg-background/10 hover:bg-background/20 flex items-center justify-center transition-colors">
+              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-background/10 hover:bg-background/20 flex items-center justify-center transition-colors">
                 <Facebook className="h-4 w-4" />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-background/10 hover:bg-background/20 flex items-center justify-center transition-colors">
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-background/10 hover:bg-background/20 flex items-center justify-center transition-colors">
                 <Instagram className="h-4 w-4" />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-background/10 hover:bg-background/20 flex items-center justify-center transition-colors">
+              <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-background/10 hover:bg-background/20 flex items-center justify-center transition-colors">
                 <Twitter className="h-4 w-4" />
               </a>
             </div>
@@ -46,12 +57,7 @@ const Footer = () => {
                 { name: "Track Order", path: "/help#track" },
               ].map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.path}
-                    className="text-sm text-background/70 hover:text-background transition-colors"
-                  >
-                    {link.name}
-                  </Link>
+                  <Link to={link.path} className="text-sm text-background/70 hover:text-background transition-colors">{link.name}</Link>
                 </li>
               ))}
             </ul>
@@ -61,20 +67,9 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-semibold mb-4">Categories</h4>
             <ul className="space-y-2">
-              {[
-                "Desi Food",
-                "Handicrafts",
-                "Pottery & Terracotta",
-                "Textiles",
-                "Home Décor",
-              ].map((category) => (
+              {["Desi Food", "Handicrafts", "Pottery & Terracotta", "Textiles", "Home Décor"].map((category) => (
                 <li key={category}>
-                  <Link
-                    to={`/shop?category=${category.toLowerCase()}`}
-                    className="text-sm text-background/70 hover:text-background transition-colors"
-                  >
-                    {category}
-                  </Link>
+                  <Link to={`/shop?category=${category.toLowerCase()}`} className="text-sm text-background/70 hover:text-background transition-colors">{category}</Link>
                 </li>
               ))}
             </ul>
@@ -86,21 +81,15 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 mt-0.5 text-secondary" />
-                <span className="text-sm text-background/70">
-                  Village Artisan Hub, Patna,<br />Bihar 800001, India
-                </span>
+                <span className="text-sm text-background/70" dangerouslySetInnerHTML={{ __html: address.replace(/\n/g, "<br />") }} />
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-secondary" />
-                <a href="tel:+916388886278" className="text-sm text-background/70 hover:text-background">
-                  +91 63888 86278
-                </a>
+                <a href={`tel:${phone.replace(/\s/g, "")}`} className="text-sm text-background/70 hover:text-background">{phone}</a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-secondary" />
-                <a href="mailto:namaste@desivirasat.store" className="text-sm text-background/70 hover:text-background">
-                  namaste@desivirasat.store
-                </a>
+                <a href={`mailto:${email}`} className="text-sm text-background/70 hover:text-background">{email}</a>
               </li>
             </ul>
           </div>

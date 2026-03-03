@@ -30,6 +30,7 @@ interface Product {
   village: string | null;
   state: string | null;
   in_stock: boolean;
+  stock_quantity?: number;
   rating: number | null;
   reviews_count: number | null;
   tags: string[] | null;
@@ -167,15 +168,15 @@ const AdminProducts = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          product.in_stock
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {product.in_stock ? "In Stock" : "Out of Stock"}
-                      </span>
+                      {(product.stock_quantity ?? 0) > 0 ? (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {product.stock_quantity} in stock
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Out of Stock
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">

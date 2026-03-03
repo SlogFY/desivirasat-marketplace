@@ -192,6 +192,17 @@ const Checkout = () => {
 
       if (itemsError) throw itemsError;
 
+      // Decrement stock quantity for each ordered product
+      for (const item of cartItems) {
+        const { data: prod } = await (supabase as any).from("products").select("stock_quantity").eq("id", item.product.id).single();
+        const currentStock = (prod as any)?.stock_quantity ?? 0;
+        const newStock = Math.max(0, currentStock - item.quantity);
+        await (supabase as any).from("products").update({ 
+          stock_quantity: newStock, 
+          in_stock: newStock > 0 
+        }).eq("id", item.product.id);
+      }
+
       // Clear cart
       clearCart();
       
