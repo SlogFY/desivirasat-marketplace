@@ -1,6 +1,6 @@
 import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Star, MapPin } from "lucide-react";
+import { ShoppingCart, Star, MapPin, Plus, Minus } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Link } from "react-router-dom";
 
@@ -9,7 +9,9 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, updateQuantity, removeFromCart } = useCart();
+  const cartItem = cartItems.find((item) => item.product.id === product.id);
+  const quantity = cartItem?.quantity || 0;
 
   return (
     <div className="group bg-card rounded-xl overflow-hidden shadow-soft hover:shadow-warm transition-all duration-300 hover:-translate-y-1">
@@ -87,14 +89,40 @@ const ProductCard = ({ product }: ProductCardProps) => {
               </span>
             )}
           </div>
-          <Button
-            size="sm"
-            variant="mustard"
-            onClick={() => addToCart(product)}
-            disabled={!product.inStock}
-          >
-            <ShoppingCart className="h-4 w-4" />
-          </Button>
+          {quantity > 0 ? (
+            <div className="flex items-center gap-1 bg-secondary rounded-lg overflow-hidden">
+              <button
+                className="p-2 hover:bg-secondary/80 transition-colors text-secondary-foreground"
+                onClick={() => {
+                  if (quantity === 1) {
+                    removeFromCart(product.id);
+                  } else {
+                    updateQuantity(product.id, quantity - 1);
+                  }
+                }}
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="text-sm font-bold text-secondary-foreground min-w-[24px] text-center">
+                {quantity}
+              </span>
+              <button
+                className="p-2 hover:bg-secondary/80 transition-colors text-secondary-foreground"
+                onClick={() => updateQuantity(product.id, quantity + 1)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="mustard"
+              onClick={() => addToCart(product)}
+              disabled={!product.inStock}
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
