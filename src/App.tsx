@@ -26,6 +26,7 @@ import AdminCategories from "./pages/admin/Categories";
 import AdminSiteContent from "./pages/admin/SiteContent";
 import AdminOrders from "./pages/admin/Orders";
 import AdminReturns from "./pages/admin/Returns";
+import AdminPaymentSettings from "./pages/admin/PaymentSettings";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
                 <Route path="site-content" element={<AdminSiteContent />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="returns" element={<AdminReturns />} />
+                <Route path="payment-settings" element={<AdminPaymentSettings />} />
               </Route>
 
               {/* Public Routes */}

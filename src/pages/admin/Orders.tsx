@@ -25,6 +25,11 @@ interface Order {
   subtotal: number;
   shipping: number;
   payment_method: string;
+  payment_status: string | null;
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
+  transaction_date: string | null;
+  refund_status: string | null;
   user_id: string;
   tracking_id: string | null;
   delivery_partner: string | null;
@@ -39,9 +44,6 @@ interface Order {
     city: string;
     state: string;
     phone: string;
-  } | null;
-  profiles?: {
-    full_name: string | null;
   } | null;
 }
 
@@ -69,6 +71,7 @@ const AdminOrders = () => {
   const [formTrackingId, setFormTrackingId] = useState("");
   const [formDeliveryPartner, setFormDeliveryPartner] = useState("");
   const [formTrackingUrl, setFormTrackingUrl] = useState("");
+  const [formRefundStatus, setFormRefundStatus] = useState("");
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["admin-orders"],
@@ -91,6 +94,7 @@ const AdminOrders = () => {
       tracking_url: string | null;
       delivered_at: string | null;
       return_deadline: string | null;
+      refund_status: string | null;
     }) => {
       const { error } = await supabase
         .from("orders")
@@ -101,6 +105,7 @@ const AdminOrders = () => {
           tracking_url: updates.tracking_url,
           delivered_at: updates.delivered_at,
           return_deadline: updates.return_deadline,
+          refund_status: updates.refund_status,
         })
         .eq("id", updates.id);
       if (error) throw error;
@@ -120,6 +125,7 @@ const AdminOrders = () => {
     setFormTrackingId(order.tracking_id || "");
     setFormDeliveryPartner(order.delivery_partner || "");
     setFormTrackingUrl(order.tracking_url || "");
+    setFormRefundStatus(order.refund_status || "");
   };
 
   const handleSave = () => {
@@ -138,6 +144,7 @@ const AdminOrders = () => {
       tracking_url: formTrackingUrl || null,
       delivered_at: deliveredAt,
       return_deadline: returnDeadline,
+      refund_status: formRefundStatus || null,
     });
   };
 
@@ -174,21 +181,22 @@ const AdminOrders = () => {
       ) : (
         <div className="bg-card rounded-xl shadow-soft overflow-hidden">
           <Table>
-            <TableHeader>
+             <TableHeader>
               <TableRow>
                 <TableHead>Order ID</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead>Tracking</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+               <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No orders found
                   </TableCell>
                 </TableRow>
@@ -214,6 +222,25 @@ const AdminOrders = () => {
                       <Badge className={`${getStatusColor(order.status)} border-0`}>
                         {order.status.replace(/_/g, " ")}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Badge className={`border-0 text-xs ${
+                          order.payment_status === "paid" ? "bg-green-100 text-green-800" :
+                          order.payment_status === "failed" ? "bg-red-100 text-red-800" :
+                          "bg-gray-100 text-gray-800"
+                        }`}>
+                          {order.payment_method === "cod" ? "COD" : (order.payment_status || "pending")}
+                        </Badge>
+                        {order.razorpay_payment_id && (
+                          <p className="text-[10px] font-mono text-muted-foreground">{order.razorpay_payment_id.slice(0, 14)}</p>
+                        )}
+                        {order.refund_status && (
+                          <Badge className="border-0 text-xs bg-orange-100 text-orange-800">
+                            Refund: {order.refund_status}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {order.tracking_id ? (
@@ -287,6 +314,28 @@ const AdminOrders = () => {
                 onChange={(e) => setFormTrackingUrl(e.target.value)}
               />
             </div>
+            {editingOrder?.payment_method === "razorpay" && (
+              <div>
+                <Label>Refund Status</Label>
+                <Select value={formRefundStatus} onValueChange={setFormRefundStatus}>
+                  <SelectTrigger><SelectValue placeholder="No refund" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Refund</SelectItem>
+                    <SelectItem value="initiated">Initiated</SelectItem>
+                    <SelectItem value="processed">Processed</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {editingOrder?.razorpay_payment_id && (
+              <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-1">
+                <p><span className="font-medium">Payment ID:</span> {editingOrder.razorpay_payment_id}</p>
+                {editingOrder.transaction_date && (
+                  <p><span className="font-medium">Transaction Date:</span> {new Date(editingOrder.transaction_date).toLocaleString("en-IN")}</p>
+                )}
+              </div>
+            )}
             {editingOrder?.delivered_at && (
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>Delivered: {new Date(editingOrder.delivered_at).toLocaleDateString("en-IN")}</p>

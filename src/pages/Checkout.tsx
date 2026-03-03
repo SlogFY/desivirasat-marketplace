@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useRazorpayEnabled } from "@/hooks/usePaymentSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Plus, Loader2, Check, Truck, CreditCard } from "lucide-react";
+import { ArrowLeft, MapPin, Plus, Loader2, Check, Truck, CreditCard, Smartphone } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface Address {
@@ -25,10 +26,17 @@ interface Address {
   is_default: boolean;
 }
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 const Checkout = () => {
   const { user, loading: authLoading } = useAuth();
   const { cartItems, getCartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const { data: razorpayEnabled } = useRazorpayEnabled();
   
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
@@ -38,7 +46,6 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingAddresses, setFetchingAddresses] = useState(true);
   
-  // New address form
   const [newAddress, setNewAddress] = useState({
     label: "Home",
     full_name: "",
@@ -67,6 +74,19 @@ const Checkout = () => {
       fetchAddresses();
     }
   }, [user]);
+
+  // Load Razorpay script
+  useEffect(() => {
+    if (razorpayEnabled) {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [razorpayEnabled]);
 
   const fetchAddresses = async () => {
     try {
@@ -144,6 +164,143 @@ const Checkout = () => {
     }
   };
 
+  const createOrderInDB = async () => {
+    const subtotal = getCartTotal();
+    const shipping = subtotal >= 499 ? 0 : 49;
+    const total = subtotal + shipping;
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        user_id: user!.id,
+        address_id: selectedAddressId,
+        subtotal,
+        shipping,
+        total,
+        payment_method: paymentMethod,
+        notes: notes || null,
+        status: paymentMethod === "razorpay" ? "pending" : "pending",
+        payment_status: paymentMethod === "razorpay" ? "pending" : "cod",
+      })
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    const orderItems = cartItems.map((item) => ({
+      order_id: order.id,
+      product_id: item.product.id,
+      price: item.product.price,
+      quantity: item.quantity,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .insert(orderItems);
+
+    if (itemsError) throw itemsError;
+
+    // Decrement stock
+    for (const item of cartItems) {
+      const { data: prod } = await (supabase as any).from("products").select("stock_quantity").eq("id", item.product.id).single();
+      const currentStock = (prod as any)?.stock_quantity ?? 0;
+      const newStock = Math.max(0, currentStock - item.quantity);
+      await (supabase as any).from("products").update({ 
+        stock_quantity: newStock, 
+        in_stock: newStock > 0 
+      }).eq("id", item.product.id);
+    }
+
+    return order;
+  };
+
+  const handleRazorpayPayment = async (order: any) => {
+    const total = Number(order.total);
+
+    // Create Razorpay order via edge function
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          amount: total,
+          currency: "INR",
+          order_id: order.id,
+        }),
+      }
+    );
+
+    const rzpData = await response.json();
+    if (rzpData.error) throw new Error(rzpData.error);
+
+    return new Promise<void>((resolve, reject) => {
+      const options = {
+        key: rzpData.razorpay_key_id,
+        amount: rzpData.amount,
+        currency: rzpData.currency,
+        name: "Desi Virasat",
+        description: `Order #${order.id.slice(0, 8).toUpperCase()}`,
+        order_id: rzpData.razorpay_order_id,
+        handler: async (response: any) => {
+          try {
+            // Verify payment via edge function
+            const verifyResponse = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  order_id: order.id,
+                }),
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+            if (verifyData.error) throw new Error(verifyData.error);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            // Update order as failed on dismiss
+            supabase
+              .from("orders")
+              .update({ payment_status: "cancelled" })
+              .eq("id", order.id);
+            reject(new Error("Payment cancelled by user"));
+          },
+        },
+        prefill: {
+          name: addresses.find((a) => a.id === selectedAddressId)?.full_name || "",
+          contact: addresses.find((a) => a.id === selectedAddressId)?.phone || "",
+        },
+        theme: {
+          color: "#c2410c",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    });
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
       toast({
@@ -156,71 +313,36 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      const subtotal = getCartTotal();
-      const shipping = subtotal >= 499 ? 0 : 49;
-      const total = subtotal + shipping;
+      const order = await createOrderInDB();
 
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user!.id,
-          address_id: selectedAddressId,
-          subtotal,
-          shipping,
-          total,
-          payment_method: paymentMethod,
-          notes: notes || null,
-          status: "pending",
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create order items
-      const orderItems = cartItems.map((item) => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        price: item.product.price,
-        quantity: item.quantity,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Decrement stock quantity for each ordered product
-      for (const item of cartItems) {
-        const { data: prod } = await (supabase as any).from("products").select("stock_quantity").eq("id", item.product.id).single();
-        const currentStock = (prod as any)?.stock_quantity ?? 0;
-        const newStock = Math.max(0, currentStock - item.quantity);
-        await (supabase as any).from("products").update({ 
-          stock_quantity: newStock, 
-          in_stock: newStock > 0 
-        }).eq("id", item.product.id);
+      if (paymentMethod === "razorpay") {
+        await handleRazorpayPayment(order);
       }
 
       // Clear cart
       clearCart();
-      
-      // Also clear from database if synced
       await supabase.from("cart_items").delete().eq("user_id", user!.id);
 
       toast({
-        title: "Order Placed Successfully!",
+        title: paymentMethod === "razorpay" ? "Payment Successful!" : "Order Placed Successfully!",
         description: `Your order #${order.id.slice(0, 8).toUpperCase()} has been placed.`,
       });
 
       navigate("/orders");
     } catch (error: any) {
-      toast({
-        title: "Order Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.message === "Payment cancelled by user") {
+        toast({
+          title: "Payment Cancelled",
+          description: "You can retry payment from your orders page.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Order Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -450,21 +572,24 @@ const Checkout = () => {
                     <p className="text-sm text-muted-foreground">Pay when you receive</p>
                   </div>
                 </div>
-                <div
-                  className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    paymentMethod === "upi"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  onClick={() => setPaymentMethod("upi")}
-                >
-                  <RadioGroupItem value="upi" id="upi" />
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <span className="font-medium">UPI / Bank Transfer</span>
-                    <p className="text-sm text-muted-foreground">Pay via UPI or bank transfer</p>
+
+                {razorpayEnabled && (
+                  <div
+                    className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                      paymentMethod === "razorpay"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setPaymentMethod("razorpay")}
+                  >
+                    <RadioGroupItem value="razorpay" id="razorpay" />
+                    <Smartphone className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">Pay Online</span>
+                      <p className="text-sm text-muted-foreground">UPI, Card, Net Banking, Wallet</p>
+                    </div>
                   </div>
-                </div>
+                )}
               </RadioGroup>
             </div>
 
@@ -538,12 +663,21 @@ const Checkout = () => {
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Placing Order...
+                    {paymentMethod === "razorpay" ? "Processing..." : "Placing Order..."}
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4" />
-                    Place Order
+                    {paymentMethod === "razorpay" ? (
+                      <>
+                        <CreditCard className="h-4 w-4" />
+                        Pay ₹{total}
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Place Order
+                      </>
+                    )}
                   </>
                 )}
               </Button>
