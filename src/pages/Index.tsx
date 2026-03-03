@@ -114,8 +114,8 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <div>
-              <p className="text-sm uppercase tracking-widest text-primary mb-2">Top Sellers</p>
-              <h2 className="font-display text-3xl md:text-4xl font-bold">Featured Products</h2>
+              <p className="text-sm uppercase tracking-widest text-primary mb-2">Most Popular</p>
+              <h2 className="font-display text-3xl md:text-4xl font-bold">Top Sellers</h2>
             </div>
             <Link to="/shop" className="mt-4 md:mt-0">
               <Button variant="outline">View All Products<ArrowRight className="h-4 w-4" /></Button>
