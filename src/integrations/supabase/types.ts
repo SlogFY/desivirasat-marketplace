@@ -164,39 +164,60 @@ export type Database = {
         Row: {
           address_id: string | null
           created_at: string
+          delivered_at: string | null
+          delivery_partner: string | null
           id: string
           notes: string | null
           payment_method: string
+          return_deadline: string | null
+          return_reason: string | null
+          return_status: string | null
           shipping: number
           status: string
           subtotal: number
           total: number
+          tracking_id: string | null
+          tracking_url: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           address_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_partner?: string | null
           id?: string
           notes?: string | null
           payment_method: string
+          return_deadline?: string | null
+          return_reason?: string | null
+          return_status?: string | null
           shipping?: number
           status?: string
           subtotal: number
           total: number
+          tracking_id?: string | null
+          tracking_url?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           address_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_partner?: string | null
           id?: string
           notes?: string | null
           payment_method?: string
+          return_deadline?: string | null
+          return_reason?: string | null
+          return_status?: string | null
           shipping?: number
           status?: string
           subtotal?: number
           total?: number
+          tracking_id?: string | null
+          tracking_url?: string | null
           updated_at?: string
           user_id?: string
         }
