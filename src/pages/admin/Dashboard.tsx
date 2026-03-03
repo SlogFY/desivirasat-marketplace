@@ -104,7 +104,7 @@ const AdminDashboard = () => {
       icon: TrendingUp,
       color: "text-primary bg-primary/10",
       onClick: () => navigate("/admin/orders"),
-      subtitle: "After return period",
+      subtitle: "After 3-day return period",
     },
     {
       title: "Pending Orders",

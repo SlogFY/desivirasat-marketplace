@@ -127,7 +127,7 @@ const AdminOrders = () => {
     const isNowDelivered = formStatus === "delivered" && editingOrder.status !== "delivered";
     const deliveredAt = isNowDelivered ? new Date().toISOString() : editingOrder.delivered_at;
     const returnDeadline = isNowDelivered
-      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
       : editingOrder.return_deadline;
 
     updateMutation.mutate({
