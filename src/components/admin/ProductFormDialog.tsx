@@ -1,19 +1,15 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, Plus } from "lucide-react";
 
 interface Product {
   id: string;
@@ -28,6 +24,7 @@ interface Product {
   village: string | null;
   state: string | null;
   in_stock: boolean;
+  stock_quantity?: number;
   rating: number | null;
   reviews_count: number | null;
   tags: string[] | null;
@@ -39,32 +36,42 @@ interface ProductFormDialogProps {
   product: Product | null;
 }
 
-const categories = ["food", "crafts", "pottery", "textiles", "accessories", "kitchen"];
-
 const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogProps) => {
   const queryClient = useQueryClient();
   const isEditing = !!product;
 
   const [formData, setFormData] = useState({
-    name: product?.name || "",
-    name_hindi: product?.name_hindi || "",
-    description: product?.description || "",
-    price: product?.price?.toString() || "",
-    original_price: product?.original_price?.toString() || "",
-    category: product?.category || "crafts",
-    artisan: product?.artisan || "",
-    village: product?.village || "",
-    state: product?.state || "",
-    in_stock: product?.in_stock ?? true,
-    tags: product?.tags?.join(", ") || "",
+    name: "",
+    name_hindi: "",
+    description: "",
+    price: "",
+    original_price: "",
+    category: "",
+    artisan: "",
+    village: "",
+    state: "",
+    stock_quantity: "0",
+    tags: "",
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState(product?.image_url || "");
+  const [imagePreview, setImagePreview] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showNewCategory, setShowNewCategory] = useState(false);
 
-  // Reset form when product changes
-  useState(() => {
+  // Fetch categories from DB
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("categories").select("*").order("name");
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+
+  // Reset form when dialog opens
+  useEffect(() => {
     if (open) {
       setFormData({
         name: product?.name || "",
@@ -72,17 +79,19 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
         description: product?.description || "",
         price: product?.price?.toString() || "",
         original_price: product?.original_price?.toString() || "",
-        category: product?.category || "crafts",
+        category: product?.category || (categories?.[0]?.name || ""),
         artisan: product?.artisan || "",
         village: product?.village || "",
         state: product?.state || "",
-        in_stock: product?.in_stock ?? true,
+        stock_quantity: (product?.stock_quantity ?? 0).toString(),
         tags: product?.tags?.join(", ") || "",
       });
       setImagePreview(product?.image_url || "");
       setImageFile(null);
+      setShowNewCategory(false);
+      setNewCategoryName("");
     }
-  });
+  }, [open, product, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,33 +104,36 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
   const uploadImage = async (file: File): Promise<string> => {
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("products")
-      .upload(fileName, file);
-
+    const { error: uploadError } = await supabase.storage.from("products").upload(fileName, file);
     if (uploadError) throw uploadError;
-
     const { data } = supabase.storage.from("products").getPublicUrl(fileName);
     return data.publicUrl;
   };
 
+  const createCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await (supabase as any).from("categories").insert({ name });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setFormData({ ...formData, category: newCategoryName });
+      setNewCategoryName("");
+      setShowNewCategory(false);
+      toast({ title: "Category created!" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const mutation = useMutation({
     mutationFn: async () => {
       setUploading(true);
-
       let imageUrl = imagePreview;
+      if (imageFile) imageUrl = await uploadImage(imageFile);
+      if (!imageUrl && !isEditing) throw new Error("Please upload a product image");
 
-      // Upload new image if selected
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      }
-
-      if (!imageUrl && !isEditing) {
-        throw new Error("Please upload a product image");
-      }
-
-      const productData = {
+      const stockQty = parseInt(formData.stock_quantity) || 0;
+      const productData: any = {
         name: formData.name,
         name_hindi: formData.name_hindi || null,
         description: formData.description,
@@ -132,17 +144,13 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
         artisan: formData.artisan || null,
         village: formData.village || null,
         state: formData.state || null,
-        in_stock: formData.in_stock,
-        tags: formData.tags
-          ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean)
-          : null,
+        in_stock: stockQty > 0,
+        stock_quantity: stockQty,
+        tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
       };
 
       if (isEditing) {
-        const { error } = await supabase
-          .from("products")
-          .update(productData)
-          .eq("id", product.id);
+        const { error } = await supabase.from("products").update(productData).eq("id", product.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("products").insert(productData);
@@ -154,46 +162,19 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({ title: isEditing ? "Product updated!" : "Product created!" });
       onOpenChange(false);
-      resetForm();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
-    onSettled: () => {
-      setUploading(false);
-    },
+    onSettled: () => setUploading(false),
   });
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      name_hindi: "",
-      description: "",
-      price: "",
-      original_price: "",
-      category: "crafts",
-      artisan: "",
-      village: "",
-      state: "",
-      in_stock: true,
-      tags: "",
-    });
-    setImageFile(null);
-    setImagePreview("");
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.name || !formData.description || !formData.price) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+    if (!formData.name || !formData.description || !formData.price || !formData.category) {
+      toast({ title: "Missing fields", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
-
     mutation.mutate();
   };
 
@@ -211,19 +192,9 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
             <div className="flex gap-4">
               {imagePreview ? (
                 <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImageFile(null);
-                      setImagePreview("");
-                    }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
-                  >
+                  <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
+                  <button type="button" onClick={() => { setImageFile(null); setImagePreview(""); }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -231,12 +202,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
                 <label className="w-32 h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
                   <Upload className="h-6 w-6 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground mt-1">Upload</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
               )}
             </div>
@@ -246,140 +212,90 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Product Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Handwoven Bamboo Basket"
-                required
-              />
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Handwoven Bamboo Basket" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="name_hindi">Name in Hindi</Label>
-              <Input
-                id="name_hindi"
-                value={formData.name_hindi}
-                onChange={(e) => setFormData({ ...formData, name_hindi: e.target.value })}
-                placeholder="e.g., हस्तनिर्मित बांस की टोकरी"
-              />
+              <Input id="name_hindi" value={formData.name_hindi} onChange={(e) => setFormData({ ...formData, name_hindi: e.target.value })} placeholder="e.g., हस्तनिर्मित बांस की टोकरी" />
             </div>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe the product..."
-              rows={3}
-              required
-            />
+            <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the product..." rows={3} required />
           </div>
 
-          {/* Price Fields */}
+          {/* Price & Stock */}
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Price (₹) *</Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="499"
-                required
-              />
+              <Input id="price" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="499" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="original_price">Original Price (₹)</Label>
-              <Input
-                id="original_price"
-                type="number"
-                value={formData.original_price}
-                onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
-                placeholder="599"
-              />
+              <Input id="original_price" type="number" value={formData.original_price} onChange={(e) => setFormData({ ...formData, original_price: e.target.value })} placeholder="599" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
-              <select
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </option>
+              <Label htmlFor="stock_quantity">Stock Quantity *</Label>
+              <Input id="stock_quantity" type="number" min="0" value={formData.stock_quantity} onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })} placeholder="10" />
+            </div>
+          </div>
+
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Category *</Label>
+            <div className="flex gap-2">
+              <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Select category</option>
+                {categories?.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
+              <Button type="button" variant="outline" size="icon" onClick={() => setShowNewCategory(!showNewCategory)}>
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
+            {showNewCategory && (
+              <div className="flex gap-2 mt-2">
+                <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="New category name" />
+                <Button type="button" size="sm" disabled={!newCategoryName || createCategoryMutation.isPending}
+                  onClick={() => createCategoryMutation.mutate(newCategoryName)}>
+                  {createCategoryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Artisan Info */}
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="artisan">Artisan Name</Label>
-              <Input
-                id="artisan"
-                value={formData.artisan}
-                onChange={(e) => setFormData({ ...formData, artisan: e.target.value })}
-                placeholder="e.g., Savitri Devi"
-              />
+              <Input id="artisan" value={formData.artisan} onChange={(e) => setFormData({ ...formData, artisan: e.target.value })} placeholder="e.g., Savitri Devi" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="village">Village</Label>
-              <Input
-                id="village"
-                value={formData.village}
-                onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                placeholder="e.g., Madhubani"
-              />
+              <Input id="village" value={formData.village} onChange={(e) => setFormData({ ...formData, village: e.target.value })} placeholder="e.g., Madhubani" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                placeholder="e.g., Bihar"
-              />
+              <Input id="state" value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} placeholder="e.g., Bihar" />
             </div>
           </div>
 
           {/* Tags */}
           <div className="space-y-2">
             <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Input
-              id="tags"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              placeholder="e.g., handmade, eco-friendly, traditional"
-            />
-          </div>
-
-          {/* Stock Toggle */}
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={formData.in_stock}
-              onCheckedChange={(checked) => setFormData({ ...formData, in_stock: checked })}
-            />
-            <Label>In Stock</Label>
+            <Input id="tags" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="e.g., handmade, eco-friendly, traditional" />
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={mutation.isPending || uploading}>
               {mutation.isPending || uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {isEditing ? "Updating..." : "Creating..."}
-                </>
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />{isEditing ? "Updating..." : "Creating..."}</>
               ) : (
                 <>{isEditing ? "Update Product" : "Create Product"}</>
               )}
