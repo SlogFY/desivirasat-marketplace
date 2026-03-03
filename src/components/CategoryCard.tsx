@@ -1,15 +1,21 @@
 import { Link } from "react-router-dom";
-import { Category } from "@/types";
 import { ArrowRight } from "lucide-react";
 
 interface CategoryCardProps {
-  category: Category;
+  category: {
+    id: string;
+    name: string;
+    nameHindi?: string;
+    description?: string;
+    image: string;
+    productCount?: number;
+  };
 }
 
 const CategoryCard = ({ category }: CategoryCardProps) => {
   return (
     <Link
-      to={`/shop?category=${category.id}`}
+      to={`/shop?category=${category.name}`}
       className="group relative overflow-hidden rounded-2xl aspect-[4/5] block"
     >
       {/* Background Image */}
@@ -26,9 +32,11 @@ const CategoryCard = ({ category }: CategoryCardProps) => {
       <div className="absolute bottom-0 left-0 right-0 p-6 text-background">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs uppercase tracking-widest text-background/70 mb-1">
-              {category.productCount} Products
-            </p>
+            {category.productCount != null && (
+              <p className="text-xs uppercase tracking-widest text-background/70 mb-1">
+                {category.productCount} Products
+              </p>
+            )}
             <h3 className="font-display text-2xl font-bold mb-1">
               {category.name}
             </h3>

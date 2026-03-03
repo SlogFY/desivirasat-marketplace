@@ -4,13 +4,34 @@ import { ArrowRight, Leaf, Heart, Users } from "lucide-react";
 import heroImage from "@/assets/hero-crafts.jpg";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
-import { categories } from "@/data/products";
+import { categories as localCategories } from "@/data/products";
 import { useSiteContent } from "@/hooks/useSiteContent";
-import { useFeaturedProducts } from "@/hooks/useProducts";
+import { useFeaturedProducts, useCategories } from "@/hooks/useProducts";
 
 const Index = () => {
   const { data: featuredProducts = [], isLoading } = useFeaturedProducts();
+  const { data: dbCategories } = useCategories();
   const { data: heroData } = useSiteContent("hero");
+
+  // Map DB categories to card format, fallback to local
+  const categories = dbCategories && dbCategories.length > 0
+    ? dbCategories
+        .filter(c => c.image_url) // only show categories with images
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          nameHindi: c.name_hindi || undefined,
+          description: c.description || undefined,
+          image: c.image_url!,
+        }))
+    : localCategories.map(c => ({
+        id: c.id,
+        name: c.name,
+        nameHindi: c.nameHindi,
+        description: c.description,
+        image: c.image,
+        productCount: c.productCount,
+      }));
 
   const heroTitle = heroData?.content?.title || "Bringing India's\nDesi Virasat\nTo Your Doorstep";
   const heroSubtitle = heroData?.content?.subtitle || "Discover authentic handmade crafts and traditional delicacies, sourced directly from village artisans across India. Every purchase preserves a heritage, supports a family.";
