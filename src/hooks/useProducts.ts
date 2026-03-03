@@ -50,20 +50,38 @@ export const useFeaturedProducts = () => {
   return useQuery({
     queryKey: ["products", "featured"],
     queryFn: async (): Promise<Product[]> => {
-      const { data, error } = await (supabase as any)
+      // 1. Try auto top-sellers from order history
+      const { data: topIds } = await supabase.rpc("get_top_selling_product_ids", { _limit: 4 });
+
+      if (topIds && topIds.length > 0) {
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .in("id", topIds)
+          .eq("in_stock", true);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          // Sort by sales rank
+          const idOrder = topIds as string[];
+          const sorted = [...data].sort((a, b) => idOrder.indexOf(a.id) - idOrder.indexOf(b.id));
+          return sorted.map(mapProduct);
+        }
+      }
+
+      // 2. Fallback: manually featured products
+      const { data: featured, error: fErr } = await supabase
         .from("products")
         .select("*")
         .eq("is_featured", true)
         .eq("in_stock", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(4);
 
-      if (error) throw error;
+      if (fErr) throw fErr;
+      if (featured && featured.length > 0) return featured.map(mapProduct);
 
-      if (!data || data.length === 0) {
-        return localProducts.slice(0, 4);
-      }
-
-      return data.map(mapProduct);
+      // 3. Final fallback: local products
+      return localProducts.slice(0, 4);
     },
   });
 };
