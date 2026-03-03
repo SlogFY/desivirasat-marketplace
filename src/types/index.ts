@@ -14,6 +14,8 @@ export interface Product {
   rating?: number;
   reviews?: number;
   tags?: string[];
+  isFeatured?: boolean;
+  stockQuantity?: number;
 }
 
 export interface Category {

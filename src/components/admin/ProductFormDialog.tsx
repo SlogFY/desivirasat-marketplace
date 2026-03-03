@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, X, Plus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface Product {
   id: string;
@@ -28,6 +29,7 @@ interface Product {
   rating: number | null;
   reviews_count: number | null;
   tags: string[] | null;
+  is_featured?: boolean;
 }
 
 interface ProductFormDialogProps {
@@ -52,6 +54,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
     state: "",
     stock_quantity: "0",
     tags: "",
+    is_featured: false,
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -85,6 +88,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
         state: product?.state || "",
         stock_quantity: (product?.stock_quantity ?? 0).toString(),
         tags: product?.tags?.join(", ") || "",
+        is_featured: product?.is_featured ?? false,
       });
       setImagePreview(product?.image_url || "");
       setImageFile(null);
@@ -147,6 +151,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
         in_stock: stockQty > 0,
         stock_quantity: stockQty,
         tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+        is_featured: formData.is_featured,
       };
 
       if (isEditing) {
@@ -288,6 +293,18 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
           <div className="space-y-2">
             <Label htmlFor="tags">Tags (comma-separated)</Label>
             <Input id="tags" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="e.g., handmade, eco-friendly, traditional" />
+          </div>
+
+          {/* Top Sell / Featured Toggle */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-4">
+            <div>
+              <Label>Top Sell / Featured</Label>
+              <p className="text-xs text-muted-foreground">Show this product on the home page</p>
+            </div>
+            <Switch
+              checked={formData.is_featured}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+            />
           </div>
 
           {/* Actions */}

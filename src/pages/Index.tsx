@@ -4,11 +4,12 @@ import { ArrowRight, Leaf, Heart, Users } from "lucide-react";
 import heroImage from "@/assets/hero-crafts.jpg";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
-import { products, categories } from "@/data/products";
+import { categories } from "@/data/products";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { useFeaturedProducts } from "@/hooks/useProducts";
 
 const Index = () => {
-  const featuredProducts = products.slice(0, 4);
+  const { data: featuredProducts = [], isLoading } = useFeaturedProducts();
   const { data: heroData } = useSiteContent("hero");
 
   const heroTitle = heroData?.content?.title || "Bringing India's\nDesi Virasat\nTo Your Doorstep";
@@ -87,23 +88,29 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Products */}
+      {/* Featured / Top Sell Products */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <div>
-              <p className="text-sm uppercase tracking-widest text-primary mb-2">Handpicked For You</p>
+              <p className="text-sm uppercase tracking-widest text-primary mb-2">Top Sellers</p>
               <h2 className="font-display text-3xl md:text-4xl font-bold">Featured Products</h2>
             </div>
             <Link to="/shop" className="mt-4 md:mt-0">
               <Button variant="outline">View All Products<ArrowRight className="h-4 w-4" /></Button>
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              No featured products yet. Mark products as "Top Sell" from the admin panel.
+            </p>
+          )}
         </div>
       </section>
 

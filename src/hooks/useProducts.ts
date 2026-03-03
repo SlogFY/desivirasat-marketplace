@@ -5,6 +5,26 @@ import { Product } from "@/types";
 // Fallback to local products if DB is empty
 import { products as localProducts } from "@/data/products";
 
+const mapProduct = (p: any): Product => ({
+  id: p.id,
+  name: p.name,
+  nameHindi: p.name_hindi || undefined,
+  description: p.description,
+  price: Number(p.price),
+  originalPrice: p.original_price ? Number(p.original_price) : undefined,
+  image: p.image_url,
+  category: p.category,
+  artisan: p.artisan || undefined,
+  village: p.village || undefined,
+  state: p.state || undefined,
+  inStock: p.in_stock ?? true,
+  rating: p.rating ? Number(p.rating) : undefined,
+  reviews: p.reviews_count || undefined,
+  tags: p.tags || undefined,
+  isFeatured: p.is_featured ?? false,
+  stockQuantity: p.stock_quantity ?? 0,
+});
+
 export const useProducts = () => {
   return useQuery({
     queryKey: ["products"],
@@ -12,7 +32,6 @@ export const useProducts = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("in_stock", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -22,24 +41,44 @@ export const useProducts = () => {
         return localProducts;
       }
 
-      // Map DB products to Product type
-      return data.map((p) => ({
-        id: p.id,
-        name: p.name,
-        nameHindi: p.name_hindi || undefined,
-        description: p.description,
-        price: Number(p.price),
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        image: p.image_url,
-        category: p.category,
-        artisan: p.artisan || undefined,
-        village: p.village || undefined,
-        state: p.state || undefined,
-        inStock: p.in_stock ?? true,
-        rating: p.rating ? Number(p.rating) : undefined,
-        reviews: p.reviews_count || undefined,
-        tags: p.tags || undefined,
-      }));
+      return data.map(mapProduct);
+    },
+  });
+};
+
+export const useFeaturedProducts = () => {
+  return useQuery({
+    queryKey: ["products", "featured"],
+    queryFn: async (): Promise<Product[]> => {
+      const { data, error } = await (supabase as any)
+        .from("products")
+        .select("*")
+        .eq("is_featured", true)
+        .eq("in_stock", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        return localProducts.slice(0, 4);
+      }
+
+      return data.map(mapProduct);
+    },
+  });
+};
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ["shop-categories"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      return data as { id: string; name: string; name_hindi?: string; description?: string; image_url?: string }[];
     },
   });
 };
@@ -58,23 +97,7 @@ export const useProduct = (id: string) => {
       if (error && !error.message.includes("invalid input syntax")) throw error;
 
       if (data) {
-        return {
-          id: data.id,
-          name: data.name,
-          nameHindi: data.name_hindi || undefined,
-          description: data.description,
-          price: Number(data.price),
-          originalPrice: data.original_price ? Number(data.original_price) : undefined,
-          image: data.image_url,
-          category: data.category,
-          artisan: data.artisan || undefined,
-          village: data.village || undefined,
-          state: data.state || undefined,
-          inStock: data.in_stock ?? true,
-          rating: data.rating ? Number(data.rating) : undefined,
-          reviews: data.reviews_count || undefined,
-          tags: data.tags || undefined,
-        };
+        return mapProduct(data);
       }
 
       // Fallback to local products
