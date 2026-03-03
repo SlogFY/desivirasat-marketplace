@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+const db = () => supabase as any;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +35,7 @@ const AdminCategories = () => {
   const { data: categories, isLoading } = useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*").order("name");
+      const { data, error } = await db().from("categories").select("*").order("name");
       if (error) throw error;
       return data as Category[];
     },
@@ -47,10 +49,10 @@ const AdminCategories = () => {
         description: form.description || null,
       };
       if (editing) {
-        const { error } = await supabase.from("categories").update(payload).eq("id", editing.id);
+        const { error } = await db().from("categories").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("categories").insert(payload);
+        const { error } = await db().from("categories").insert(payload);
         if (error) throw error;
       }
     },
@@ -67,7 +69,7 @@ const AdminCategories = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
+      const { error } = await db().from("categories").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

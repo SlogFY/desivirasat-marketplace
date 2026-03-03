@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useIsAdmin } from "@/hooks/useUserRole";
-import { Loader2, LayoutDashboard, Package, Users, Settings, LogOut, ChevronLeft, Menu } from "lucide-react";
+import { Loader2, LayoutDashboard, Package, Users, Settings, LogOut, ChevronLeft, Menu, FolderOpen, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const AdminLayout = () => {
@@ -39,6 +39,8 @@ const AdminLayout = () => {
   const navItems = [
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard, show: true },
     { name: "Products", path: "/admin/products", icon: Package, show: isProductManager },
+    { name: "Categories", path: "/admin/categories", icon: FolderOpen, show: isProductManager },
+    { name: "Site Content", path: "/admin/site-content", icon: FileText, show: isAdmin },
     { name: "Orders", path: "/admin/orders", icon: Package, show: isAdmin },
     { name: "Users", path: "/admin/users", icon: Users, show: isAdmin },
     { name: "Settings", path: "/admin/settings", icon: Settings, show: isAdmin },
