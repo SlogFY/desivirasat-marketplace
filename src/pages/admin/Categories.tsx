@@ -76,6 +76,7 @@ const AdminCategories = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["shop-categories"] });
       toast({ title: editing ? "Category updated!" : "Category created!" });
       closeDialog();
     },
@@ -89,6 +90,7 @@ const AdminCategories = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["shop-categories"] });
       toast({ title: "Category deleted" });
       setDeleteId(null);
     },
@@ -163,7 +165,7 @@ const AdminCategories = () => {
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Category" : "Add Category"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); if (!imagePreview && !imageFile && !editing) { toast({ title: "Image required", description: "Please upload a category image", variant: "destructive" }); return; } mutation.mutate(); }} className="space-y-4">
             <div className="space-y-2">
               <Label>Name *</Label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -177,7 +179,7 @@ const AdminCategories = () => {
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
             </div>
             <div className="space-y-2">
-              <Label>Image</Label>
+              <Label>Image *</Label>
               {imagePreview ? (
                 <div className="relative inline-block">
                   <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
