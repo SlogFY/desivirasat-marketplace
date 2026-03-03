@@ -24,6 +24,8 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/Products";
 import AdminCategories from "./pages/admin/Categories";
 import AdminSiteContent from "./pages/admin/SiteContent";
+import AdminOrders from "./pages/admin/Orders";
+import AdminReturns from "./pages/admin/Returns";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,8 @@ const App = () => (
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="site-content" element={<AdminSiteContent />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="returns" element={<AdminReturns />} />
               </Route>
 
               {/* Public Routes */}
