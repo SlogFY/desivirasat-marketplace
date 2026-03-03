@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCategories } from "@/hooks/useSiteContent";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +26,7 @@ interface Product {
   village: string | null;
   state: string | null;
   in_stock: boolean;
+  stock_quantity: number;
   rating: number | null;
   reviews_count: number | null;
   tags: string[] | null;
@@ -39,10 +38,9 @@ interface ProductFormDialogProps {
   product: Product | null;
 }
 
-const categories = ["food", "crafts", "pottery", "textiles", "accessories", "kitchen"];
-
 const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogProps) => {
   const queryClient = useQueryClient();
+  const { data: categoriesList } = useCategories();
   const isEditing = !!product;
 
   const [formData, setFormData] = useState({
@@ -56,6 +54,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
     village: product?.village || "",
     state: product?.state || "",
     in_stock: product?.in_stock ?? true,
+    stock_quantity: product?.stock_quantity?.toString() || "0",
     tags: product?.tags?.join(", ") || "",
   });
 
@@ -77,6 +76,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
         village: product?.village || "",
         state: product?.state || "",
         in_stock: product?.in_stock ?? true,
+        stock_quantity: product?.stock_quantity?.toString() || "0",
         tags: product?.tags?.join(", ") || "",
       });
       setImagePreview(product?.image_url || "");
@@ -132,7 +132,8 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
         artisan: formData.artisan || null,
         village: formData.village || null,
         state: formData.state || null,
-        in_stock: formData.in_stock,
+        in_stock: parseInt(formData.stock_quantity) > 0,
+        stock_quantity: parseInt(formData.stock_quantity) || 0,
         tags: formData.tags
           ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean)
           : null,
@@ -176,6 +177,7 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
       village: "",
       state: "",
       in_stock: true,
+      stock_quantity: "0",
       tags: "",
     });
     setImageFile(null);
@@ -309,9 +311,9 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                {(categoriesList || []).map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
                   </option>
                 ))}
               </select>
@@ -360,13 +362,18 @@ const ProductFormDialog = ({ open, onOpenChange, product }: ProductFormDialogPro
             />
           </div>
 
-          {/* Stock Toggle */}
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={formData.in_stock}
-              onCheckedChange={(checked) => setFormData({ ...formData, in_stock: checked })}
+          {/* Stock Quantity */}
+          <div className="space-y-2">
+            <Label htmlFor="stock_quantity">Stock Quantity</Label>
+            <Input
+              id="stock_quantity"
+              type="number"
+              min="0"
+              value={formData.stock_quantity}
+              onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+              placeholder="0"
             />
-            <Label>In Stock</Label>
+            <p className="text-xs text-muted-foreground">Set to 0 for out of stock</p>
           </div>
 
           {/* Actions */}
